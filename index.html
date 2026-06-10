@@ -395,6 +395,21 @@ function cube(ctx,gx,gy,color,size){
   ctx.fill();
 }
 
+// landing preview: clearly translucent hollow outline (no glow, no gloss)
+function ghostCell(ctx,gx,gy,color,size){
+  const x=gx*size, y=gy*size, pad=Math.max(1,size*0.08);
+  const lw=Math.max(2,size*0.09);
+  ctx.save();
+  ctx.globalAlpha=0.10; ctx.fillStyle=color;          // very faint fill
+  roundRect(ctx,x+pad,y+pad,size-pad*2,size-pad*2,size*0.26);
+  ctx.fill();
+  ctx.globalAlpha=0.55; ctx.lineWidth=lw; ctx.strokeStyle=color;  // dashed outline
+  ctx.setLineDash([size*0.22,size*0.14]);
+  roundRect(ctx,x+pad+lw/2,y+pad+lw/2,size-pad*2-lw,size-pad*2-lw,size*0.22);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function draw(){
   bctx.clearRect(0,0,board.width,board.height);
   // soft grid dots
@@ -410,9 +425,7 @@ function draw(){
     // ghost
     let gy=cur.y;
     while(!collide(cur.cells,cur.x,gy+1)) gy++;
-    bctx.globalAlpha=.25;
-    for(const [x,y] of cur.cells) if(y+gy>=0) cube(bctx,x+cur.x,y+gy,cur.color,cell);
-    bctx.globalAlpha=1;
+    if(gy>cur.y) for(const [x,y] of cur.cells) if(y+gy>=0) ghostCell(bctx,x+cur.x,y+gy,cur.color,cell);
     // current
     for(const [x,y] of cur.cells) if(y+cur.y>=0) cube(bctx,x+cur.x,y+cur.y,cur.color,cell);
   }
@@ -521,6 +534,15 @@ document.getElementById('mute').addEventListener('click',e=>{
 
 // unlock iOS audio on first touch/click
 ['touchstart','mousedown'].forEach(ev=>document.addEventListener(ev,()=>audio(),{passive:true}));
+
+// iOS suspends audio when the app is backgrounded — auto-pause on leave, restore on return
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    if(running && !paused) togglePause();   // pause game + stop music while away
+  } else {
+    audio();                                 // resume the AudioContext on return
+  }
+});
 
 // keyboard for desktop testing
 document.addEventListener('keydown',e=>{
