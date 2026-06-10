@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#efe3ff">
+<title>♡ Sara's Cutris ♡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#efe3ff; --bg2:#e7ecff; --ink:#6b5c8a;
+    --panel:#faf6ff; --panelShadow:#e0d0ff;
+    --btn:#e4d6ff; --btnA:#cdbcf5; --btnText:#6e4f9a;
+    --grid:#1f1635;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;}
+  html,body{margin:0; height:100%; overflow:hidden;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    font-family:"Baloo 2","Comic Sans MS","Segoe UI Rounded",system-ui,sans-serif;
+    color:var(--ink); touch-action:none;}
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;
+    align-items:center; padding:env(safe-area-inset-top) 8px env(safe-area-inset-bottom);}
+
+  .title{font-family:"Press Start 2P",system-ui,sans-serif;
+    font-size:16px; font-weight:800; letter-spacing:1px;
+    margin:10px 0 6px; color:#a55dff;
+    text-shadow:0 0 6px #c79eff, 0 0 14px #a55dff, 0 2px 0 #fff;}
+  .title small{display:block; font-family:system-ui,sans-serif;
+    font-size:11px; font-weight:600; opacity:.7; margin-top:4px;
+    color:var(--ink); text-shadow:none;}
+
+  .hud{display:flex; gap:8px; width:100%; max-width:420px; margin-bottom:6px;}
+  .card{flex:1; background:var(--panel); border-radius:16px; padding:6px 4px;
+    text-align:center; box-shadow:0 3px 0 var(--panelShadow);}
+  .card .lbl{font-size:11px; opacity:.7;}
+  .card .val{font-family:"Press Start 2P",system-ui,sans-serif;
+    font-size:15px; font-weight:800; padding:3px 0 1px; color:#8a48c0;}
+
+  .stage{position:relative; background:var(--panel);
+    border-radius:18px; padding:8px; box-shadow:0 6px 0 var(--panelShadow);}
+  canvas{display:block; border-radius:10px; background:var(--grid);}
+  #board{box-shadow:inset 0 0 22px rgba(0,0,0,.5);}
+
+  .scan{position:absolute; inset:8px; border-radius:10px; pointer-events:none;
+    background:repeating-linear-gradient(rgba(255,255,255,0) 0 2px, rgba(0,0,0,.16) 2px 3px);
+    opacity:.5;}
+  .flash{position:absolute; inset:8px; border-radius:10px; pointer-events:none;
+    background:#fff; opacity:0;}
+  .flash.go{animation:flash .18s ease-out;}
+  @keyframes flash{from{opacity:.75;} to{opacity:0;}}
+  .combo{position:absolute; top:18%; left:0; right:0; text-align:center;
+    font-family:"Press Start 2P",system-ui,sans-serif; font-size:18px;
+    color:#fff; pointer-events:none; opacity:0;
+    text-shadow:0 0 8px #a55dff,0 0 16px #a55dff,0 2px 0 #5a2899;}
+  .combo.go{animation:combo .7s ease-out;}
+  @keyframes combo{
+    0%{opacity:0; transform:scale(.4);}
+    25%{opacity:1; transform:scale(1.25);}
+    60%{opacity:1; transform:scale(1);}
+    100%{opacity:0; transform:scale(1) translateY(-16px);}}
+  .stage.shake{animation:shake .2s;}
+  @keyframes shake{
+    0%,100%{transform:translate(0,0);} 20%{transform:translate(-4px,3px);}
+    40%{transform:translate(4px,-3px);} 60%{transform:translate(-3px,-2px);}
+    80%{transform:translate(3px,2px);}}
+
+  .controls{display:flex; flex-direction:column; align-items:center;
+    gap:10px; margin-top:auto; padding-top:10px; width:100%; max-width:420px;}
+  .row{display:flex; gap:14px; justify-content:center; align-items:center; width:100%;}
+  .btn{appearance:none; border:none; background:var(--btn);
+    color:var(--btnText); font-weight:800; font-family:inherit;
+    border-radius:22px; box-shadow:0 4px 0 var(--btnA);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .05s, box-shadow .05s; touch-action:none;}
+  .btn:active{transform:translateY(3px); box-shadow:0 1px 0 var(--btnA);}
+  .btn.dir{width:74px; height:64px; font-size:28px;}
+  .btn.wide{flex:1; height:58px; font-size:17px;}
+  .btn.rot{width:90px; height:64px; font-size:18px;}
+
+  .overlay{position:absolute; inset:0; display:none;
+    align-items:center; justify-content:center; flex-direction:column;
+    background:rgba(255,246,251,.92); border-radius:18px; text-align:center; padding:20px;}
+  .overlay.show{display:flex;}
+  .overlay h2{margin:.2em 0; font-size:26px;}
+  .overlay p{margin:.2em 0; font-size:15px; opacity:.8;}
+  .overlay .play{margin-top:14px; background:var(--btn); color:var(--btnText);
+    border:none; font-family:inherit; font-weight:800; font-size:18px;
+    padding:12px 28px; border-radius:20px; box-shadow:0 4px 0 var(--btnA);}
+  .overlay .play:active{transform:translateY(3px); box-shadow:0 1px 0 var(--btnA);}
+  .heart{font-size:34px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title">♡ Sara's Cutris ♡ <small>for my love</small></div>
+
+  <div class="hud">
+    <div class="card"><div class="lbl">Score</div><div class="val" id="score">0</div></div>
+    <div class="card"><div class="lbl">Lines</div><div class="val" id="lines">0</div></div>
+    <div class="card"><div class="lbl">Level</div><div class="val" id="level">1</div></div>
+    <div class="card"><div class="lbl">Next</div><canvas id="next" width="48" height="48" style="margin:0 auto;background:transparent"></canvas></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="board"></canvas>
+    <div class="scan"></div>
+    <div class="flash" id="flash"></div>
+    <div class="combo" id="combo"></div>
+    <div class="overlay show" id="overlay">
+      <div class="heart">🌸</div>
+      <h2 id="ovTitle">Hi Sara!</h2>
+      <p id="ovText">Tap play and have fun ♡</p>
+      <button class="play" id="playBtn">Play ♡</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="row">
+      <button class="btn rot" id="rotL">↺ Spin</button>
+      <button class="btn rot" id="rotR">Spin ↻</button>
+    </div>
+    <div class="row">
+      <button class="btn dir" id="left">◀</button>
+      <button class="btn dir" id="down">▼</button>
+      <button class="btn dir" id="right">▶</button>
+    </div>
+    <div class="row">
+      <button class="btn wide" id="drop">⬇ Drop</button>
+      <button class="btn wide" id="pause">⏸ Pause</button>
+      <button class="btn" id="mute" style="width:58px;height:58px;font-size:22px;">🔊</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLS=10, ROWS=20;
+const board=document.getElementById('board');
+const nextCv=document.getElementById('next');
+const bctx=board.getContext('2d');
+const nctx=nextCv.getContext('2d');
+
+// ---- arcade sound engine (Web Audio, no files needed) ----
+let actx=null, muted=false;
+function audio(){
+  if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx && actx.state==='suspended') actx.resume();
+  return actx;
+}
+function beep(freq,dur,type='square',vol=0.15,slideTo){
+  const ac=audio(); if(!ac||muted) return;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,ac.currentTime);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,ac.currentTime+dur);
+  g.gain.setValueAtTime(vol,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(); o.stop(ac.currentTime+dur);
+}
+function arp(notes,dur,type='square',vol=0.13,gap=0.06){
+  notes.forEach((f,i)=>setTimeout(()=>beep(f,dur,type,vol),i*gap*1000));
+}
+const SFX={
+  move:()=>beep(220,0.04,'square',0.07),
+  rotate:()=>beep(460,0.06,'square',0.09),
+  soft:()=>beep(150,0.04,'square',0.05),
+  drop:()=>beep(340,0.14,'sawtooth',0.14,70),
+  lock:()=>beep(190,0.05,'square',0.08),
+  line:(n)=>arp([523,659,784,1047,1318].slice(0,Math.min(5,n+1)),0.16,'square',0.14,0.05),
+  level:()=>arp([523,659,784,1047,1318,1568],0.14,'triangle',0.14,0.07),
+  over:()=>arp([440,349,294,196],0.28,'sawtooth',0.16,0.13)
+};
+
+// ---- arcade feedback (flash + shake) ----
+const stageEl=document.querySelector('.stage');
+const flashEl=document.getElementById('flash');
+function flash(){ flashEl.classList.remove('go'); void flashEl.offsetWidth; flashEl.classList.add('go'); }
+function shake(){ stageEl.classList.remove('shake'); void stageEl.offsetWidth; stageEl.classList.add('shake'); }
+
+const comboEl=document.getElementById('combo');
+function comboPop(n){
+  comboEl.textContent='COMBO x'+n+'!';
+  comboEl.classList.remove('go'); void comboEl.offsetWidth; comboEl.classList.add('go');
+}
+
+// ---- vibration (Android/most browsers; iOS Safari ignores it) ----
+function buzz(p){ if(navigator.vibrate){ try{ navigator.vibrate(p); }catch(e){} } }
+
+// ---- background music: looping chiptune (Korobeiniki, public domain) ----
+const BEAT=0.26;
+// [frequency or null, length in beats]
+const TUNE=[
+  [659,1],[494,.5],[523,.5],[587,1],[523,.5],[494,.5],
+  [440,1],[440,.5],[523,.5],[659,1],[587,.5],[523,.5],
+  [494,1.5],[523,.5],[587,1],[659,1],
+  [523,1],[440,1],[440,1],[null,1],
+  [587,1.5],[698,.5],[880,1],[784,.5],[698,.5],
+  [659,1.5],[523,.5],[659,1],[587,.5],[523,.5],
+  [494,1],[494,.5],[523,.5],[587,1],[659,1],
+  [523,1],[440,1],[440,1],[null,1]
+];
+let musicTimer=null, mIndex=0, nextNoteTime=0;
+function note(freq,when,dur,type,vol){
+  const ac=audio(); if(!ac) return;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,when);
+  g.gain.setValueAtTime(0.0001,when);
+  g.gain.exponentialRampToValueAtTime(vol,when+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(when); o.stop(when+dur+0.02);
+}
+function schedule(){
+  const ac=audio(); if(!ac) return;
+  while(nextNoteTime < ac.currentTime+0.25){
+    const [f,len]=TUNE[mIndex];
+    if(f && !muted){
+      note(f, nextNoteTime, len*BEAT*0.92, 'triangle', 0.05);   // melody
+      note(f/2, nextNoteTime, len*BEAT*0.9, 'square', 0.025);   // soft bass
+    }
+    nextNoteTime += len*BEAT;
+    mIndex=(mIndex+1)%TUNE.length;
+  }
+}
+function startMusic(){
+  const ac=audio(); if(!ac || musicTimer) return;
+  mIndex=0; nextNoteTime=ac.currentTime+0.15;
+  musicTimer=setInterval(schedule, 60);
+}
+function stopMusic(){ clearInterval(musicTimer); musicTimer=null; }
+
+// cute pastel palette per piece
+const COLORS={
+  I:'#3fc6ff', O:'#ffd23f', T:'#c061ff',
+  S:'#34e0a1', Z:'#ff5d8f', J:'#5b78ff', L:'#ff9f1c'
+};
+const SHAPES={
+  I:[[0,1],[1,1],[2,1],[3,1]],
+  O:[[1,0],[2,0],[1,1],[2,1]],
+  T:[[1,0],[0,1],[1,1],[2,1]],
+  S:[[1,0],[2,0],[0,1],[1,1]],
+  Z:[[0,0],[1,0],[1,1],[2,1]],
+  J:[[0,0],[0,1],[1,1],[2,1]],
+  L:[[2,0],[0,1],[1,1],[2,1]]
+};
+const KEYS=Object.keys(SHAPES);
+
+let cell=24; // recalculated on resize
+function fit(){
+  // size board to fit viewport, leaving room for hud + controls
+  const maxW = Math.min(window.innerWidth-32, 420);
+  const maxH = window.innerHeight*0.52;
+  cell = Math.floor(Math.min(maxW/COLS, maxH/ROWS));
+  cell = Math.max(14, cell);
+  board.width = cell*COLS;
+  board.height = cell*ROWS;
+}
+window.addEventListener('resize', ()=>{ fit(); draw(); });
+
+let grid, cur, nextPiece, score, lines, level, combo, gameOver, paused, running;
+let dropTimer=0, dropInterval=800, lastTime=0;
+
+function blank(){ return Array.from({length:ROWS},()=>Array(COLS).fill(null)); }
+
+function newPiece(type){
+  type = type || KEYS[(Math.random()*KEYS.length)|0];
+  return { type, color:COLORS[type], cells:SHAPES[type].map(c=>[...c]), x:3, y:0 };
+}
+
+function rotate(piece, dir){
+  // rotate around centroid of bounding box (4x4-ish), simple matrix rotation
+  const cells=piece.cells.map(([x,y])=>{
+    // pivot at (1.5,1.5) works decently for these compact shapes
+    const px=x-1.5, py=y-1.5;
+    return dir>0 ? [Math.round(1.5-py),Math.round(1.5+px)]
+                 : [Math.round(1.5+py),Math.round(1.5-px)];
+  });
+  return cells;
+}
+
+function collide(cells, ox, oy){
+  for(const [x,y] of cells){
+    const gx=x+ox, gy=y+oy;
+    if(gx<0||gx>=COLS||gy>=ROWS) return true;
+    if(gy>=0 && grid[gy][gx]) return true;
+  }
+  return false;
+}
+
+function move(dx,dy){
+  if(!running||paused) return;
+  if(!collide(cur.cells, cur.x+dx, cur.y+dy)){ cur.x+=dx; cur.y+=dy; draw(); return true; }
+  return false;
+}
+
+function tryRotate(dir){
+  if(!running||paused) return;
+  const r=rotate(cur,dir);
+  // wall kicks: try offsets
+  for(const k of [0,-1,1,-2,2]){
+    if(!collide(r, cur.x+k, cur.y)){ cur.cells=r; cur.x+=k; SFX.rotate(); draw(); return; }
+  }
+}
+
+function softDrop(){
+  if(!running||paused) return;
+  if(!move(0,1)){ lock(); }
+  else { score+=1; updateHud(); SFX.soft(); }
+}
+
+function hardDrop(){
+  if(!running||paused) return;
+  let d=0;
+  while(!collide(cur.cells, cur.x, cur.y+1)){ cur.y++; d++; }
+  score+=d*2; updateHud(); SFX.drop(); buzz(25);
+  lock();
+}
+
+function lock(){
+  SFX.lock();
+  for(const [x,y] of cur.cells){
+    const gy=y+cur.y, gx=x+cur.x;
+    if(gy<0){ endGame(); return; }
+    grid[gy][gx]=cur.color;
+  }
+  clearLines();
+  cur=nextPiece; nextPiece=newPiece(); drawNext();
+  if(collide(cur.cells, cur.x, cur.y)){ endGame(); return; }
+  draw();
+}
+
+function clearLines(){
+  let cleared=0;
+  for(let y=ROWS-1;y>=0;y--){
+    if(grid[y].every(c=>c)){
+      grid.splice(y,1); grid.unshift(Array(COLS).fill(null));
+      cleared++; y++;
+    }
+  }
+  if(cleared){
+    const oldLevel=level;
+    combo++;
+    let pts=[0,100,300,500,800][cleared]*level;
+    if(combo>=1) pts+=50*combo*level;       // combo bonus
+    score+=pts; lines+=cleared;
+    level=Math.floor(lines/10)+1;
+    dropInterval=Math.max(120, 800-(level-1)*70);
+    updateHud();
+    SFX.line(cleared); flash();
+    buzz(cleared>=2 ? [40,30,40,30,60] : 50);
+    if(combo>=1){ comboPop(combo+1); }       // x2, x3, ... for back-to-back
+    if(cleared>=2) shake();
+    if(level>oldLevel) setTimeout(()=>SFX.level(), 180);
+  } else {
+    combo=-1;                                 // chain broken
+  }
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function cube(ctx,gx,gy,color,size){
+  const x=gx*size, y=gy*size, pad=Math.max(1,size*0.08);
+  // neon glow
+  ctx.save();
+  ctx.shadowColor=color; ctx.shadowBlur=size*0.55;
+  roundRect(ctx,x+pad,y+pad,size-pad*2,size-pad*2,size*0.28);
+  ctx.fillStyle=color; ctx.fill();
+  ctx.restore();
+  // glossy highlight (no glow)
+  ctx.fillStyle='rgba(255,255,255,.5)';
+  roundRect(ctx,x+pad*1.6,y+pad*1.6,(size-pad*2)*0.5,(size-pad*2)*0.35,size*0.18);
+  ctx.fill();
+}
+
+function draw(){
+  bctx.clearRect(0,0,board.width,board.height);
+  // soft grid dots
+  bctx.fillStyle='rgba(255,255,255,.1)';
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    bctx.fillRect(x*cell+cell/2-1, y*cell+cell/2-1, 2,2);
+  }
+  // settled
+  if(grid) for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    if(grid[y][x]) cube(bctx,x,y,grid[y][x],cell);
+  }
+  if(running && cur){
+    // ghost
+    let gy=cur.y;
+    while(!collide(cur.cells,cur.x,gy+1)) gy++;
+    bctx.globalAlpha=.25;
+    for(const [x,y] of cur.cells) if(y+gy>=0) cube(bctx,x+cur.x,y+gy,cur.color,cell);
+    bctx.globalAlpha=1;
+    // current
+    for(const [x,y] of cur.cells) if(y+cur.y>=0) cube(bctx,x+cur.x,y+cur.y,cur.color,cell);
+  }
+}
+
+function drawNext(){
+  nctx.clearRect(0,0,nextCv.width,nextCv.height);
+  if(!nextPiece) return;
+  const s=11;
+  const xs=nextPiece.cells.map(c=>c[0]), ys=nextPiece.cells.map(c=>c[1]);
+  const minX=Math.min(...xs), minY=Math.min(...ys);
+  const w=(Math.max(...xs)-minX+1), h=(Math.max(...ys)-minY+1);
+  const ox=(nextCv.width-w*s)/2/s - minX;
+  const oy=(nextCv.height-h*s)/2/s - minY;
+  for(const [x,y] of nextPiece.cells) cube(nctx,x+ox,y+oy,nextPiece.color,s);
+}
+
+function updateHud(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('lines').textContent=lines;
+  document.getElementById('level').textContent=level;
+}
+
+function loop(t){
+  if(running && !paused){
+    if(!lastTime) lastTime=t;
+    dropTimer += t-lastTime;
+    if(dropTimer>dropInterval){ dropTimer=0; if(!move(0,1)) lock(); }
+  }
+  lastTime=t;
+  requestAnimationFrame(loop);
+}
+
+function start(){
+  grid=blank(); score=0; lines=0; level=1; combo=-1; dropInterval=800;
+  gameOver=false; paused=false; running=true; dropTimer=0; lastTime=0;
+  cur=newPiece(); nextPiece=newPiece();
+  updateHud(); drawNext(); draw();
+  hideOverlay();
+  startMusic();
+}
+
+function endGame(){
+  running=false;
+  stopMusic();
+  SFX.over(); shake(); buzz([80,40,80,40,160]);
+  showOverlay('🌷 Game Over','Sara, you scored '+score+' ♡  Tap to play again','Play again ♡');
+}
+
+function togglePause(){
+  if(!running) return;
+  paused=!paused;
+  if(paused){ stopMusic(); showOverlay('⏸ Paused','Take a breath, Sara ♡','Resume ♡'); }
+  else { hideOverlay(); startMusic(); }
+}
+
+const overlay=document.getElementById('overlay');
+function showOverlay(title,text,btn){
+  document.getElementById('ovTitle').textContent=title;
+  document.getElementById('ovText').textContent=text;
+  document.getElementById('playBtn').textContent=btn||'Play ♡';
+  overlay.classList.add('show');
+}
+function hideOverlay(){ overlay.classList.remove('show'); }
+
+document.getElementById('playBtn').addEventListener('click',()=>{
+  if(paused){ paused=false; hideOverlay(); }
+  else start();
+});
+
+// ---- button wiring (touch + click, with auto-repeat for move/down) ----
+function hold(el, fn, repeat){
+  let iv=null, to=null;
+  const go=(e)=>{ e.preventDefault(); fn();
+    if(repeat){ to=setTimeout(()=>{ iv=setInterval(fn,70); },220); } };
+  const stop=()=>{ clearTimeout(to); clearInterval(iv); iv=to=null; };
+  el.addEventListener('touchstart',go,{passive:false});
+  el.addEventListener('touchend',stop);
+  el.addEventListener('touchcancel',stop);
+  el.addEventListener('mousedown',go);
+  el.addEventListener('mouseup',stop);
+  el.addEventListener('mouseleave',stop);
+}
+hold(document.getElementById('left'), ()=>{ if(move(-1,0)) SFX.move(); }, true);
+hold(document.getElementById('right'),()=>{ if(move(1,0)) SFX.move(); }, true);
+hold(document.getElementById('down'), ()=>softDrop(), true);
+document.getElementById('rotL').addEventListener('click',()=>tryRotate(-1));
+document.getElementById('rotR').addEventListener('click',()=>tryRotate(1));
+document.getElementById('drop').addEventListener('click',hardDrop);
+document.getElementById('pause').addEventListener('click',togglePause);
+document.getElementById('mute').addEventListener('click',e=>{
+  muted=!muted; e.currentTarget.textContent=muted?'🔇':'🔊';
+  if(!muted){ audio(); SFX.rotate(); }
+});
+
+// unlock iOS audio on first touch/click
+['touchstart','mousedown'].forEach(ev=>document.addEventListener(ev,()=>audio(),{passive:true}));
+
+// keyboard for desktop testing
+document.addEventListener('keydown',e=>{
+  if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(e.key)) e.preventDefault();
+  if(e.key==='ArrowLeft')move(-1,0);
+  else if(e.key==='ArrowRight')move(1,0);
+  else if(e.key==='ArrowDown')softDrop();
+  else if(e.key==='ArrowUp')tryRotate(1);
+  else if(e.key==='z')tryRotate(-1);
+  else if(e.key===' ')hardDrop();
+  else if(e.key==='p')togglePause();
+});
+
+// prevent iOS double-tap zoom / scroll bounce on the play area
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.body.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+
+fit(); draw(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
