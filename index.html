@@ -22,25 +22,33 @@
     font-family:"Baloo 2","Comic Sans MS","Segoe UI Rounded",system-ui,sans-serif;
     color:var(--ink); touch-action:none;}
   #app{position:fixed; inset:0; display:flex; flex-direction:column;
-    align-items:center; padding:env(safe-area-inset-top) 8px env(safe-area-inset-bottom);}
+    padding:env(safe-area-inset-top) 6px env(safe-area-inset-bottom);}
 
-  .title{font-family:"Press Start 2P",system-ui,sans-serif;
-    font-size:16px; font-weight:800; letter-spacing:1px;
-    margin:10px 0 6px; color:#a55dff;
-    text-shadow:0 0 6px #c79eff, 0 0 14px #a55dff, 0 2px 0 #fff;}
-  .title small{display:block; font-family:system-ui,sans-serif;
-    font-size:11px; font-weight:600; opacity:.7; margin-top:4px;
-    color:var(--ink); text-shadow:none;}
+  /* ---- compact top bar ---- */
+  .topbar{flex:0 0 auto; width:100%; max-width:480px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px; padding:2px 8px;}
+  .brand{font-family:"Press Start 2P",system-ui,sans-serif;
+    font-size:10px; color:#a55dff; line-height:1.3;
+    text-shadow:0 0 6px #c79eff, 0 0 12px #a55dff;}
+  .stats{display:flex; align-items:center; gap:12px;}
+  .stat{display:flex; flex-direction:column; align-items:center; line-height:1;}
+  .stat b{font-family:"Press Start 2P",system-ui,sans-serif;
+    font-size:12px; color:#8a48c0;}
+  .stat i{font-style:normal; font-size:8px; opacity:.6; margin-top:3px;
+    text-transform:uppercase; letter-spacing:.5px;}
+  #next{background:transparent;}
+  .icons{display:flex; gap:6px;}
+  .icon{appearance:none; border:none; background:var(--btn); color:var(--btnText);
+    width:34px; height:34px; border-radius:11px; font-size:15px;
+    box-shadow:0 3px 0 var(--btnA); display:flex; align-items:center; justify-content:center;}
+  .icon:active{transform:translateY(2px); box-shadow:0 1px 0 var(--btnA);}
 
-  .hud{display:flex; gap:8px; width:100%; max-width:420px; margin-bottom:6px;}
-  .card{flex:1; background:var(--panel); border-radius:16px; padding:6px 4px;
-    text-align:center; box-shadow:0 3px 0 var(--panelShadow);}
-  .card .lbl{font-size:11px; opacity:.7;}
-  .card .val{font-family:"Press Start 2P",system-ui,sans-serif;
-    font-size:15px; font-weight:800; padding:3px 0 1px; color:#8a48c0;}
-
+  /* ---- play area fills the rest (~3/4) ---- */
+  .play-area{flex:1 1 auto; min-height:0; width:100%;
+    display:flex; align-items:center; justify-content:center; padding:4px 0;}
   .stage{position:relative; background:var(--panel);
-    border-radius:18px; padding:8px; box-shadow:0 6px 0 var(--panelShadow);}
+    border-radius:16px; padding:8px; box-shadow:0 6px 0 var(--panelShadow);}
   canvas{display:block; border-radius:10px; background:var(--grid);}
   #board{box-shadow:inset 0 0 22px rgba(0,0,0,.5);}
 
@@ -67,22 +75,27 @@
     40%{transform:translate(4px,-3px);} 60%{transform:translate(-3px,-2px);}
     80%{transform:translate(3px,2px);}}
 
-  .controls{display:flex; flex-direction:column; align-items:center;
-    gap:10px; margin-top:auto; padding-top:10px; width:100%; max-width:420px;}
-  .row{display:flex; gap:14px; justify-content:center; align-items:center; width:100%;}
+  /* ---- bottom control zone (~1/4) ---- */
+  .controls{flex:0 0 auto; width:100%; max-width:480px; margin:0 auto;
+    height:20vh; min-height:130px; max-height:185px;
+    display:flex; align-items:stretch; justify-content:space-between;
+    gap:12px; padding:6px 12px;}
+  .dpad{flex:1 1 auto; max-width:240px; height:100%;
+    display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:10px;}
   .btn{appearance:none; border:none; background:var(--btn);
     color:var(--btnText); font-weight:800; font-family:inherit;
-    border-radius:22px; box-shadow:0 4px 0 var(--btnA);
+    border-radius:18px; box-shadow:0 5px 0 var(--btnA);
     display:flex; align-items:center; justify-content:center;
     transition:transform .05s, box-shadow .05s; touch-action:none;}
-  .btn:active{transform:translateY(3px); box-shadow:0 1px 0 var(--btnA);}
-  .btn.dir{width:74px; height:64px; font-size:28px;}
-  .btn.wide{flex:1; height:58px; font-size:17px;}
-  .btn.rot{width:90px; height:64px; font-size:18px;}
+  .btn:active{transform:translateY(3px); box-shadow:0 2px 0 var(--btnA);}
+  .dpad .btn{font-size:30px;}
+  .dpad .down{grid-column:1 / span 2;}
+  .spin{flex:0 0 auto; width:34vw; max-width:150px;
+    border-radius:26px; font-size:42px;}
 
   .overlay{position:absolute; inset:0; display:none;
     align-items:center; justify-content:center; flex-direction:column;
-    background:rgba(255,246,251,.92); border-radius:18px; text-align:center; padding:20px;}
+    background:rgba(250,246,255,.93); border-radius:16px; text-align:center; padding:20px;}
   .overlay.show{display:flex;}
   .overlay h2{margin:.2em 0; font-size:26px;}
   .overlay p{margin:.2em 0; font-size:15px; opacity:.8;}
@@ -95,43 +108,42 @@
 </head>
 <body>
 <div id="app">
-  <div class="title">♡ Sara's Cutris ♡ <small>for my love</small></div>
-
-  <div class="hud">
-    <div class="card"><div class="lbl">Score</div><div class="val" id="score">0</div></div>
-    <div class="card"><div class="lbl">Lines</div><div class="val" id="lines">0</div></div>
-    <div class="card"><div class="lbl">Level</div><div class="val" id="level">1</div></div>
-    <div class="card"><div class="lbl">Next</div><canvas id="next" width="48" height="48" style="margin:0 auto;background:transparent"></canvas></div>
+  <div class="topbar">
+    <div class="brand">♡ Sara's<br>Cutris ♡</div>
+    <div class="stats">
+      <div class="stat"><b id="score">0</b><i>Score</i></div>
+      <div class="stat"><b id="lines">0</b><i>Lines</i></div>
+      <div class="stat"><b id="level">1</b><i>Lvl</i></div>
+      <canvas id="next" width="44" height="44"></canvas>
+    </div>
+    <div class="icons">
+      <button class="icon" id="pause">⏸</button>
+      <button class="icon" id="mute">🔊</button>
+    </div>
   </div>
 
-  <div class="stage">
-    <canvas id="board"></canvas>
-    <div class="scan"></div>
-    <div class="flash" id="flash"></div>
-    <div class="combo" id="combo"></div>
-    <div class="overlay show" id="overlay">
-      <div class="heart">🌸</div>
-      <h2 id="ovTitle">Hi Sara!</h2>
-      <p id="ovText">Tap play and have fun ♡</p>
-      <button class="play" id="playBtn">Play ♡</button>
+  <div class="play-area">
+    <div class="stage">
+      <canvas id="board"></canvas>
+      <div class="scan"></div>
+      <div class="flash" id="flash"></div>
+      <div class="combo" id="combo"></div>
+      <div class="overlay show" id="overlay">
+        <div class="heart">🌸</div>
+        <h2 id="ovTitle">Hi Sara!</h2>
+        <p id="ovText">Tap play and have fun ♡</p>
+        <button class="play" id="playBtn">Play ♡</button>
+      </div>
     </div>
   </div>
 
   <div class="controls">
-    <div class="row">
-      <button class="btn rot" id="rotL">↺ Spin</button>
-      <button class="btn rot" id="rotR">Spin ↻</button>
+    <div class="dpad">
+      <button class="btn" id="left">◀</button>
+      <button class="btn" id="right">▶</button>
+      <button class="btn down" id="down">▼</button>
     </div>
-    <div class="row">
-      <button class="btn dir" id="left">◀</button>
-      <button class="btn dir" id="down">▼</button>
-      <button class="btn dir" id="right">▶</button>
-    </div>
-    <div class="row">
-      <button class="btn wide" id="drop">⬇ Drop</button>
-      <button class="btn wide" id="pause">⏸ Pause</button>
-      <button class="btn" id="mute" style="width:58px;height:58px;font-size:22px;">🔊</button>
-    </div>
+    <button class="btn spin" id="spin">↻</button>
   </div>
 </div>
 
@@ -247,17 +259,18 @@ const SHAPES={
 };
 const KEYS=Object.keys(SHAPES);
 
+const playArea=document.querySelector('.play-area');
 let cell=24; // recalculated on resize
 function fit(){
-  // size board to fit viewport, leaving room for hud + controls
-  const maxW = Math.min(window.innerWidth-32, 420);
-  const maxH = window.innerHeight*0.52;
-  cell = Math.floor(Math.min(maxW/COLS, maxH/ROWS));
-  cell = Math.max(14, cell);
+  // fill the play area while keeping the 10:20 board ratio
+  const availW = playArea.clientWidth - 20;   // minus stage padding
+  const availH = playArea.clientHeight - 20;
+  cell = Math.max(12, Math.floor(Math.min(availW/COLS, availH/ROWS)));
   board.width = cell*COLS;
   board.height = cell*ROWS;
 }
 window.addEventListener('resize', ()=>{ fit(); draw(); });
+window.addEventListener('load', ()=>{ fit(); draw(); });   // re-fit after fonts load
 
 let grid, cur, nextPiece, score, lines, level, combo, gameOver, paused, running;
 let dropTimer=0, dropInterval=800, lastTime=0;
@@ -486,10 +499,21 @@ function hold(el, fn, repeat){
 hold(document.getElementById('left'), ()=>{ if(move(-1,0)) SFX.move(); }, true);
 hold(document.getElementById('right'),()=>{ if(move(1,0)) SFX.move(); }, true);
 hold(document.getElementById('down'), ()=>softDrop(), true);
-document.getElementById('rotL').addEventListener('click',()=>tryRotate(-1));
-document.getElementById('rotR').addEventListener('click',()=>tryRotate(1));
-document.getElementById('drop').addEventListener('click',hardDrop);
+document.getElementById('spin').addEventListener('click',()=>tryRotate(1));
 document.getElementById('pause').addEventListener('click',togglePause);
+
+// swipe down on the board = hard drop (iPhone-style gesture)
+(function(){
+  let sx=0, sy=0, t=0;
+  board.addEventListener('touchstart',e=>{
+    const tp=e.changedTouches[0]; sx=tp.clientX; sy=tp.clientY; t=Date.now();
+  },{passive:true});
+  board.addEventListener('touchend',e=>{
+    const tp=e.changedTouches[0];
+    const dx=tp.clientX-sx, dy=tp.clientY-sy, dt=Date.now()-t;
+    if(dy>40 && dy>Math.abs(dx)*1.5 && dt<500) hardDrop();   // quick downward swipe
+  },{passive:true});
+})();
 document.getElementById('mute').addEventListener('click',e=>{
   muted=!muted; e.currentTarget.textContent=muted?'🔇':'🔊';
   if(!muted){ audio(); SFX.rotate(); }
