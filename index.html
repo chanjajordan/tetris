@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cutris">
 <meta name="theme-color" content="#efe3ff">
 <title>♡ Sara's Cutris ♡</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -69,6 +72,19 @@
     25%{opacity:1; transform:scale(1.25);}
     60%{opacity:1; transform:scale(1);}
     100%{opacity:0; transform:scale(1) translateY(-16px);}}
+  .scorepop{position:absolute; top:34%; left:0; right:0; text-align:center;
+    font-family:"Press Start 2P",system-ui,sans-serif; font-size:13px;
+    color:#ffe9a8; pointer-events:none; opacity:0;
+    text-shadow:0 0 8px #ffb84d,0 2px 0 #8a5b00;}
+  .scorepop.go{animation:spop .8s ease-out;}
+  @keyframes spop{
+    0%{opacity:0; transform:translateY(8px) scale(.6);}
+    25%{opacity:1; transform:scale(1.15);}
+    100%{opacity:0; transform:translateY(-24px);}}
+  .bgheart{position:fixed; bottom:-40px; font-size:20px; opacity:.16;
+    pointer-events:none; z-index:0; animation:floatup linear infinite;}
+  @keyframes floatup{to{transform:translateY(-115vh) rotate(40deg);}}
+  #app{z-index:1;}
   .stage.shake{animation:shake .2s;}
   @keyframes shake{
     0%,100%{transform:translate(0,0);} 20%{transform:translate(-4px,3px);}
@@ -128,6 +144,7 @@
       <div class="scan"></div>
       <div class="flash" id="flash"></div>
       <div class="combo" id="combo"></div>
+      <div class="scorepop" id="scorepop"></div>
       <div class="overlay show" id="overlay">
         <div class="heart">🌸</div>
         <h2 id="ovTitle">Hi Sara!</h2>
@@ -192,10 +209,68 @@ function flash(){ flashEl.classList.remove('go'); void flashEl.offsetWidth; flas
 function shake(){ stageEl.classList.remove('shake'); void stageEl.offsetWidth; stageEl.classList.add('shake'); }
 
 const comboEl=document.getElementById('combo');
-function comboPop(n){
-  comboEl.textContent='COMBO x'+n+'!';
+function pop(text){
+  comboEl.textContent=text;
   comboEl.classList.remove('go'); void comboEl.offsetWidth; comboEl.classList.add('go');
 }
+function comboPop(n){ pop('COMBO x'+n+'!'); }
+
+const scorepopEl=document.getElementById('scorepop');
+function scorePop(pts){
+  scorepopEl.textContent='+'+pts;
+  scorepopEl.classList.remove('go'); void scorepopEl.offsetWidth; scorepopEl.classList.add('go');
+}
+
+// sweet level-up messages
+const LEVEL_MSGS=['Level up, cutie! 🌟','Sara on fire! 🔥','Amazing! 💜','Unstoppable! ✨','Wow Sara! 🌸','So good!! 💕'];
+
+// ---- confetti particles on line clear ----
+let parts=[];
+function spawnParts(rows){
+  for(const ry of rows) for(let i=0;i<16;i++){
+    parts.push({ x:Math.random()*COLS*cell, y:ry*cell+cell/2,
+      vx:(Math.random()-.5)*3.2, vy:-Math.random()*3.5-1,
+      life:1, heart:Math.random()<.35,
+      col:['#ff5d8f','#ffd23f','#c061ff','#3fc6ff','#34e0a1'][(Math.random()*5)|0],
+      sz:cell*(0.12+Math.random()*0.16) });
+  }
+}
+function stepParts(){
+  for(const p of parts){ p.x+=p.vx; p.y+=p.vy; p.vy+=0.14; p.life-=0.022; }
+  parts=parts.filter(p=>p.life>0 && p.y<ROWS*cell+20);
+}
+function drawParts(){
+  for(const p of parts){
+    bctx.globalAlpha=Math.max(0,p.life);
+    if(p.heart){
+      bctx.fillStyle=p.col; bctx.font=(p.sz*2.4)+'px serif';
+      bctx.fillText('♥',p.x,p.y);
+    }else{
+      bctx.fillStyle=p.col;
+      bctx.beginPath(); bctx.arc(p.x,p.y,p.sz,0,7); bctx.fill();
+    }
+  }
+  bctx.globalAlpha=1;
+}
+
+// ---- high score (saved on her phone) ----
+let best=0;
+try{ best=parseInt(localStorage.getItem('cutris-best'))||0; }catch(e){}
+function saveBest(){ try{ localStorage.setItem('cutris-best',best); }catch(e){} }
+
+// ---- floating hearts background ----
+(function(){
+  const glyphs=['💜','♡','✨','🌸','💕'];
+  for(let i=0;i<10;i++){
+    const s=document.createElement('span');
+    s.className='bgheart'; s.textContent=glyphs[i%glyphs.length];
+    s.style.left=(5+Math.random()*90)+'vw';
+    s.style.fontSize=(14+Math.random()*14)+'px';
+    s.style.animationDuration=(9+Math.random()*10)+'s';
+    s.style.animationDelay=(-Math.random()*12)+'s';
+    document.body.appendChild(s);
+  }
+})();
 
 // ---- vibration (Android/most browsers; iOS Safari ignores it) ----
 function buzz(p){ if(navigator.vibrate){ try{ navigator.vibrate(p); }catch(e){} } }
@@ -243,10 +318,15 @@ function startMusic(){
 }
 function stopMusic(){ clearInterval(musicTimer); musicTimer=null; }
 
-// cute pastel palette per piece
+// jewel palette per piece
 const COLORS={
-  I:'#3fc6ff', O:'#ffd23f', T:'#c061ff',
-  S:'#34e0a1', Z:'#ff5d8f', J:'#5b78ff', L:'#ff9f1c'
+  I:'#aef0ff',  // diamond (ice)
+  O:'#ffd23f',  // citrine (gold)
+  T:'#b14aff',  // amethyst
+  S:'#1ed98b',  // emerald
+  Z:'#ff3b6b',  // ruby
+  J:'#3b6bff',  // sapphire
+  L:'#ff9425'   // topaz
 };
 const SHAPES={
   I:[[0,1],[1,1],[2,1],[3,1]],
@@ -345,14 +425,12 @@ function lock(){
 }
 
 function clearLines(){
-  let cleared=0;
-  for(let y=ROWS-1;y>=0;y--){
-    if(grid[y].every(c=>c)){
-      grid.splice(y,1); grid.unshift(Array(COLS).fill(null));
-      cleared++; y++;
-    }
-  }
+  const full=[];
+  for(let y=0;y<ROWS;y++) if(grid[y].every(c=>c)) full.push(y);
+  const cleared=full.length;
   if(cleared){
+    spawnParts(full);
+    for(const y of full){ grid.splice(y,1); grid.unshift(Array(COLS).fill(null)); }
     const oldLevel=level;
     combo++;
     let pts=[0,100,300,500,800][cleared]*level;
@@ -361,11 +439,15 @@ function clearLines(){
     level=Math.floor(lines/10)+1;
     dropInterval=Math.max(120, 800-(level-1)*70);
     updateHud();
-    SFX.line(cleared); flash();
+    SFX.line(cleared); flash(); scorePop(pts);
     buzz(cleared>=2 ? [40,30,40,30,60] : 50);
-    if(combo>=1){ comboPop(combo+1); }       // x2, x3, ... for back-to-back
+    if(cleared===4) pop('CUTRIS!! 🌈');
+    else if(combo>=1) comboPop(combo+1);     // x2, x3, ... for back-to-back
     if(cleared>=2) shake();
-    if(level>oldLevel) setTimeout(()=>SFX.level(), 180);
+    if(level>oldLevel){
+      setTimeout(()=>SFX.level(), 180);
+      setTimeout(()=>pop(LEVEL_MSGS[(level-2)%LEVEL_MSGS.length]), 750);
+    }
   } else {
     combo=-1;                                 // chain broken
   }
@@ -382,16 +464,37 @@ function roundRect(ctx,x,y,w,h,r){
 }
 
 function cube(ctx,gx,gy,color,size){
-  const x=gx*size, y=gy*size, pad=Math.max(1,size*0.08);
-  // neon glow
+  const pad=Math.max(1,size*0.07);
+  const x=gx*size+pad, y=gy*size+pad, w=size-pad*2;
+  const f=w*0.27;                          // facet depth
+  const ix=x+f, iy=y+f, iw=w-f*2;          // table (flat top of gem)
+  // glow + base
   ctx.save();
-  ctx.shadowColor=color; ctx.shadowBlur=size*0.55;
-  roundRect(ctx,x+pad,y+pad,size-pad*2,size-pad*2,size*0.28);
+  ctx.shadowColor=color; ctx.shadowBlur=size*0.5;
+  roundRect(ctx,x,y,w,w,size*0.16);
   ctx.fillStyle=color; ctx.fill();
   ctx.restore();
-  // glossy highlight (no glow)
-  ctx.fillStyle='rgba(255,255,255,.5)';
-  roundRect(ctx,x+pad*1.6,y+pad*1.6,(size-pad*2)*0.5,(size-pad*2)*0.35,size*0.18);
+  // facets, clipped to gem outline (light from top-left)
+  ctx.save();
+  roundRect(ctx,x,y,w,w,size*0.16); ctx.clip();
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+w,y); ctx.lineTo(ix+iw,iy); ctx.lineTo(ix,iy); ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,.42)'; ctx.fill();                 // top facet
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ix,iy); ctx.lineTo(ix,iy+iw); ctx.lineTo(x,y+w); ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,.16)'; ctx.fill();                 // left facet
+  ctx.beginPath(); ctx.moveTo(x+w,y); ctx.lineTo(x+w,y+w); ctx.lineTo(ix+iw,iy+iw); ctx.lineTo(ix+iw,iy); ctx.closePath();
+  ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fill();                       // right facet
+  ctx.beginPath(); ctx.moveTo(x,y+w); ctx.lineTo(x+w,y+w); ctx.lineTo(ix+iw,iy+iw); ctx.lineTo(ix,iy+iw); ctx.closePath();
+  ctx.fillStyle='rgba(0,0,0,.30)'; ctx.fill();                       // bottom facet
+  ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(ix,iy,iw,iw);  // table shine
+  ctx.restore();
+  // sparkle: tiny 4-point star
+  const sx=x+w*0.32, sy=y+w*0.30, r=w*0.11;
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.beginPath();
+  ctx.moveTo(sx,sy-r); ctx.quadraticCurveTo(sx,sy,sx+r,sy);
+  ctx.quadraticCurveTo(sx,sy,sx,sy+r);
+  ctx.quadraticCurveTo(sx,sy,sx-r,sy);
+  ctx.quadraticCurveTo(sx,sy,sx,sy-r);
   ctx.fill();
 }
 
@@ -429,6 +532,7 @@ function draw(){
     // current
     for(const [x,y] of cur.cells) if(y+cur.y>=0) cube(bctx,x+cur.x,y+cur.y,cur.color,cell);
   }
+  if(parts.length) drawParts();
 }
 
 function drawNext(){
@@ -455,6 +559,7 @@ function loop(t){
     dropTimer += t-lastTime;
     if(dropTimer>dropInterval){ dropTimer=0; if(!move(0,1)) lock(); }
   }
+  if(parts.length){ stepParts(); draw(); }   // confetti animation
   lastTime=t;
   requestAnimationFrame(loop);
 }
@@ -472,7 +577,13 @@ function endGame(){
   running=false;
   stopMusic();
   SFX.over(); shake(); buzz([80,40,80,40,160]);
-  showOverlay('🌷 Game Over','Sara, you scored '+score+' ♡  Tap to play again','Play again ♡');
+  if(score>best){
+    best=score; saveBest();
+    showOverlay('🏆 NEW RECORD!','Sara you scored '+score+' — your best ever!! 💜','Play again ♡');
+    setTimeout(()=>SFX.level(),600);
+  }else{
+    showOverlay('🌷 Game Over','Score: '+score+' ♡  Best: '+best,'Play again ♡');
+  }
 }
 
 function togglePause(){
@@ -492,16 +603,18 @@ function showOverlay(title,text,btn){
 function hideOverlay(){ overlay.classList.remove('show'); }
 
 document.getElementById('playBtn').addEventListener('click',()=>{
-  if(paused){ paused=false; hideOverlay(); }
+  if(paused) togglePause();   // resume: restarts music too
   else start();
 });
 
 // ---- button wiring (touch + click, with auto-repeat for move/down) ----
+const holdStops=[];   // so we can kill auto-repeat when app is backgrounded
 function hold(el, fn, repeat){
   let iv=null, to=null;
   const go=(e)=>{ e.preventDefault(); fn();
     if(repeat){ to=setTimeout(()=>{ iv=setInterval(fn,70); },220); } };
   const stop=()=>{ clearTimeout(to); clearInterval(iv); iv=to=null; };
+  holdStops.push(stop);
   el.addEventListener('touchstart',go,{passive:false});
   el.addEventListener('touchend',stop);
   el.addEventListener('touchcancel',stop);
@@ -536,13 +649,16 @@ document.getElementById('mute').addEventListener('click',e=>{
 ['touchstart','mousedown'].forEach(ev=>document.addEventListener(ev,()=>audio(),{passive:true}));
 
 // iOS suspends audio when the app is backgrounded — auto-pause on leave, restore on return
+function onHide(){
+  holdStops.forEach(s=>s());                // kill stuck auto-repeat (finger left mid-hold)
+  if(running && !paused) togglePause();     // pause game + stop music while away
+}
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){
-    if(running && !paused) togglePause();   // pause game + stop music while away
-  } else {
-    audio();                                 // resume the AudioContext on return
-  }
+  if(document.hidden) onHide();
+  else audio();                              // resume the AudioContext on return
 });
+window.addEventListener('pagehide',onHide); // extra safety on older iOS Safari
+window.addEventListener('blur',()=>holdStops.forEach(s=>s()));
 
 // keyboard for desktop testing
 document.addEventListener('keydown',e=>{
@@ -560,6 +676,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('gesturestart',e=>e.preventDefault());
 document.body.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 
+if(best>0) document.getElementById('ovText').textContent='Your best: '+best+' ♡ Beat it!';
 fit(); draw(); requestAnimationFrame(loop);
 </script>
 </body>
